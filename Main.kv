@@ -1,0 +1,109 @@
+#:import MDToolbar kivymd.uix.toolbar.MDToolbar
+#:import MDFlatButton kivymd.uix.button.MDFlatButton
+#:import MDRectangleFlatButton kivymd.uix.button.MDRectangleFlatButton
+#:import MDRaisedButton kivymd.uix.button.MDRaisedButton
+#:import MDNavigationDrawerIconButton kivymd.uix.navigationdrawer.NavigationDrawerIconButton
+#:import MDLabel kivymd.uix.label.MDLabel
+#:import MDScrollViewRefreshLayout kivymd.uix.refreshlayout.MDScrollViewRefreshLayout
+
+<ItemCard>
+
+<MDLabel>
+    theme_text_color: 'Primary'
+
+
+<NavButton>
+    on_release:
+        app.show_screen(self.val[4:])
+        app.set_title_toolbar(self.val[4:])
+
+<ContentNavigationDrawer@MDNavigationDrawer>:
+
+    NavigationDrawerSubheader:
+        text: app.main_subheader
+
+    NavButton:
+        val:"app.algoritmus"
+    NavButton:
+        val:"app.tasks"
+
+    NavigationDrawerSubheader:
+        text:app.settings_subheader
+
+    NavButton:
+        val:"app.customization"
+
+
+MainLayout:
+    id: nav_layout
+
+    ContentNavigationDrawer:
+        id: nav_drawer
+
+    BoxLayout:
+        id:content
+        orientation:"vertical"
+        MDToolbar:
+            id: toolbar
+            title: 'KivyMD Kitchen Sink'
+            md_bg_color: app.theme_cls.primary_color
+            background_palette: 'Primary'
+            background_hue: '500'
+            elevation: 10
+            left_action_items:
+                [['dots-vertical', lambda x: app.root.toggle_nav_drawer()]]
+
+        ScreenManager:
+            id:scr_mngr
+
+            Screen:
+                name:"algoritmus"
+                do_scroll_x:False
+                BoxLayout:
+                    id:algoritmus_layout
+                    spacing:dp(5)
+                    size:self.size
+
+                    orientation:"vertical"
+                    MDLabel:
+                        pos_hint: {'center_x': .5}
+                        size_hint:None,None
+
+                        id:algoritmus_promotes
+                        text:app.algoritmus_promotes
+                    ItemCard:
+                        id:algoritmuscard
+
+            Screen:
+                name: "customization"
+
+                BoxLayout:
+                    orientation:"vertical"
+                    MDRectangleFlatButton:
+                        pos_hint: {'center_x': .5}
+                        size_hint:None,None
+
+                        id:justathemechangingbutton
+                        text: app.change_theme
+                        on_release: app.theme_picker_open()
+
+                    MDLabel:
+                        pos_hint: {'center_x': .5}
+                        size_hint:None,None
+
+                        text:app._get_theme_string()
+                        id:theme_label
+
+                    MDRaisedButton:
+                        id:justathemesavingbutton
+                        pos_hint: {'center_x': .5}
+                        size_hint:None,None
+
+                        text:app.save
+                        on_release:app.update_theme()
+            Screen:
+                name:"tasks"
+
+
+            Screen:
+                emptyarg:app.refresh_names_navdrawer(),app.refresh_data()
