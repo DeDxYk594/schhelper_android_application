@@ -386,7 +386,7 @@ class MainApp(App):
             api = vk.API(
                 access_token="f9f6b7be7c38e3dcf882dec4de70cd40291241d6fca9818c25d46702c4fcdcafa111dbb37620577cab3e")
             spisok = api.wall.get(owner_id=-181278776, count=15)
-            # last_post = self.get_last_post()
+            last_post = self.get_last_post()
             last_post = 1
             spisok = spisok["items"]
             self.set_last_post(spisok[0]["id"])
