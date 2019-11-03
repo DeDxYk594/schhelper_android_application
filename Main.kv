@@ -5,6 +5,10 @@
 #:import MDNavigationDrawerIconButton kivymd.uix.navigationdrawer.NavigationDrawerIconButton
 #:import MDLabel kivymd.uix.label.MDLabel
 #:import MDScrollViewRefreshLayout kivymd.uix.refreshlayout.MDScrollViewRefreshLayout
+#:import MDSpinner kivymd.uix.spinner
+#:import MDBottomNavigation kivymd.uix.bottomnavigation
+#:import MDBottomNavigationItem kivymd.uix.bottomnavigation
+#:import MDList kivymd.uix.list
 
 <ItemCard>
     size_hint:None,None
@@ -14,27 +18,30 @@
 
 
 <NavButton>
-    on_release:
-        #todo make this
-        #app.wait_second()
-        app.show_screen(self.val[4:])
-        app.set_title_toolbar(self.val[4:])
+
 
 <ContentNavigationDrawer@MDNavigationDrawer>:
-
+    drawer_logo:"dock-window"
     NavigationDrawerSubheader:
         text: app.main_subheader
 
     NavButton:
         val:"app.algoritmus"
+        icon:"point-of-sale"
     NavButton:
         val:"app.tasks"
+        icon:"wunderlist"
+    NavButton:
+        val:"app.raspisanie"
+        icon:"school"
 
     NavigationDrawerSubheader:
         text:app.settings_subheader
 
     NavButton:
         val:"app.customization"
+        icon:"palette"
+
 
 
 MainLayout:
@@ -54,7 +61,9 @@ MainLayout:
             background_hue: '500'
             elevation: 10
             left_action_items:
-                [['dots-vertical', lambda x: app.root.toggle_nav_drawer()]]
+                [['menu', lambda x: app.root.toggle_nav_drawer()]]
+            right_action_items:
+                [['update', app.refresh_data_online]]
 
         ScreenManager:
             id:scr_mngr
@@ -108,31 +117,71 @@ MainLayout:
 
             Screen:
                 name:"tasks"
-                FloatLayout:
-                    id:tasks_float_layout
-                    MDScrollViewRefreshLayout:
-                        id:tasks_refresh_layout
-                        refresh_callback:app.refresh_data_online()
-                        root_layout:app.main_widget.ids.tasks_float_layout
+                BoxLayout:
+                    id:tasks_root_layout
+                    orientation:"vertical"
+                    ScrollView:
+                        orientation:"vertical"
+                        id:tasks_view
                         do_scroll_x:False
-                        ScrollView:
+                        size_hint:1,1
+                        GridLayout:
+                            id:tasks_layout
+                            cols:1
+                            padding:dp(5)
+                            spacing:dp(5)
+                            size_hint_y:None
+                            size_hint_x:None
                             orientation:"vertical"
-                            id:tasks_view
-                            do_scroll_x:False
-                            size_hint:1,1
-                            GridLayout:
-                                id:tasks_layout
-                                cols:1
-                                padding:dp(5)
-                                spacing:dp(5)
-                                size_hint_y:None
-                                size_hint_x:None
-                                orientation:"vertical"
-                                height:self.minimum_height
+                            height:self.minimum_height
 
+            Screen:
+                name:"raspisanie"
+                BoxLayout:
+                    orientation:"vertical"
+                    MDBottomNavigation:
+                        id:rasp_panel
+
+                        MDBottomNavigationItem:
+                            name:"promoted"
+                            text:app.promoted
+                            icon:"checkbox-marked"
+                            ScrollView:
+                                orientation:"vertical"
+                                do_scroll_x:False
+                                size_hint:1,1
+                                MDList:
+                                    orientation:"vertical"
+                                    height:self.minimum_height
+                                    padding:dp(5)
+                                    spacing:dp(5)
+                                    id:rasp_list
+
+                        MDBottomNavigationItem:
+                            text:app.all_rasp
+                            icon:"check-all"
+                            name:"all"
+                            ScrollView:
+                                orientation:"vertical"
+                                do_scroll_x:False
+                                size_hint:1,1
+                                MDList:
+                                    orientation:"vertical"
+                                    height:self.minimum_height
+                                    padding:dp(5)
+                                    spacing:dp(5)
+                                    id:rasp_all_list
 
 
 
 
             Screen:
+                name:"wait"
                 emptyarg:app.refresh_names_navdrawer()
+                BoxLayout:
+                    orientation:"vertical"
+                    MDSpinner:
+                        active:True
+
+                        pos_hint: {'center_x': .5}
+                        size_hint:None,None

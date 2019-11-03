@@ -3,15 +3,14 @@ from datetime import datetime
 
 import pytz
 from kivy.app import App
+from kivy.clock import Clock
 from kivymd.theming import ThemeManager
 from kivymd.uix.card import MDCardPost
+from kivymd.uix.list import ThreeLineIconListItem
 from kivymd.uix.navigationdrawer import NavigationDrawerIconButton
 from kivymd.uix.navigationdrawer import NavigationLayout
 from kivymd.uix.picker import MDThemePicker
 from kivymd.uix.snackbar import Snackbar
-from kivymd.uix.menu import MDMenuItem,MDDropdownMenu
-
-
 
 SCHEDULE = {0: ["Русский язык", "История", "География", "Биология", "Алгебра", "Физика"],
             1: ["География", "Английский язык", "Информатика", "Геометрия", "Литература", "Физическая физкультура"],
@@ -20,14 +19,26 @@ SCHEDULE = {0: ["Русский язык", "История", "География
             4: ["История", "Английский язык", "Физическая физкультура", "Литература", "Обществознание"],
             5: ["Химия", "Музыка", "Русский язык", "Литература", "Геометрия"]}
 
+DAYOFWEEK_DICT = {0: "Понедельник", 1: "Вторник", 2: "Среда", 3: "Четверг", 4: "Пятница", 5: "Суббота",
+                  6: "Воскресенье"}
+DEFAULT_SCHED = ["Нет уроков"]
+
 THEME_FILE = "theme.ini"
+DATA_FILE = "data.ini"
 
 try:
-    o = open(THEME_FILE, "r")
+    o = open(THEME_FILE, "r", encoding="utf-8")
     theme = eval(o.read())
     o.close()
 except:
     theme = None
+
+try:
+    o = open(DATA_FILE, "r", encoding="utf-8")
+    data = eval(o.read())
+    o.close()
+except:
+    data = {}
 
 
 # Vspomogatelnaiye function
@@ -133,11 +144,9 @@ class ItemCard(MDCardPost):
         menu_item = [{"viewclass": "MDMenuItem", "text": "Сделано", "callback": lambda: self.callback(None, 0)}]
         self.right_menu = [menu_item, menu_item]
         print("setted menu")
-        self.swipe=True
+        self.swipe = True
         self.path_to_avatar = "assets\pencil.png"
         self.data_for_cancel = {}
-
-
 
     def callback(self, inst, value):
         if value:
@@ -151,7 +160,7 @@ class ItemCard(MDCardPost):
         app.cancel_delete(self.data_for_cancel)
         Snackbar(text="Отменено!").show()
 
-    def set_data(self, data, header, nextday=False, addiction=None,from_tasks=False):
+    def set_data(self, data, header, nextday=False, addiction=None, from_tasks=False):
         data_visual = communise(data)[0]
         vis = ""
         for i in data_visual:
@@ -164,7 +173,7 @@ class ItemCard(MDCardPost):
             addiction = {False: "На потом", True: "На завтра"}[bool(nextday)]
 
         self.data = data
-        self.from_tasks=from_tasks
+        self.from_tasks = from_tasks
         self.header = header
         self.nextday = nextday
         self.addiction = addiction
@@ -178,6 +187,13 @@ class NavButton(NavigationDrawerIconButton):
     def __init__(self, *_, **__):
         super().__init__(*_, **__)
         app.nav_buttons.append(self)
+
+    def on_timeout(self, *_, **__):
+        app.show_screen(self.val[4:])
+        app.set_title_toolbar(self.val[4:])
+
+    def on_release(self):
+        app.wait_second(self)
 
 
 # Базовый класс, отвечает за расположение всего
@@ -205,6 +221,8 @@ class MainApp(App):
     change_theme = "Настроить внешний вид"
     save = "Сохранить"
     render_theme = "Фон: {}\nБазовый цвет: {}\nВторичный цвет: {}"
+    promoted = "Рекомендуемое"
+    all_rasp = "Всё расписание"
 
     # Подзаголовки NavigationDrawerа
     main_subheader = "Основное"
@@ -220,6 +238,7 @@ class MainApp(App):
 
         # Theme Manager, куда же без него!
         self.theme_cls = ThemeManager()
+
 
         # Loading theme from file
         try:
@@ -240,11 +259,7 @@ class MainApp(App):
         self.title = "9В - ДЗ"
 
         # Данные домашки
-        # todo сделать импорт из ВК
-        # Дата временная
-        self.data = {'Информатика(обе группы)': 'Не задано; делали проверочную',
-                     'Английский язык (с Гошей)': 'WB p21 wordlist columns 2,3; WB p21-22 ex 16,17 ',
-                     'Английский язык (без Гоши)': 'Неизвестно', "Русский язык(письменно)": "Задание 1"}
+        self.data = data
 
         # Инит в суперклассе, иначе кинет ошибку
         super().__init__()
@@ -292,12 +307,25 @@ class MainApp(App):
             if self.algoritmus_data:
                 break
 
+        self.main_widget.ids.rasp_list.clear_widgets()
+
+        today_list_item = ThreeLineIconListItem()
+        today_list_item.text = "Сегодня ({})".format(DAYOFWEEK_DICT[weekday])
+        today_list_item.secondary_text = ", ".join(SCHEDULE.get(weekday, DEFAULT_SCHED))
+
+        self.main_widget.ids.rasp_list.add_widget(today_list_item)
         self.algoritmus_nextday = False
         if weekday in (5, 6):
             weekday = -1
         weekday += 1
         if self.algoritmus_header in SCHEDULE[weekday]:
-            self.nextday = True
+            self.algoritmus_nextday = True
+
+        today_list_item = ThreeLineIconListItem()
+        today_list_item.text = "Завтра ({})".format(DAYOFWEEK_DICT[weekday])
+        today_list_item.secondary_text = ", ".join(SCHEDULE.get(weekday, DEFAULT_SCHED))
+
+        self.main_widget.ids.rasp_list.add_widget(today_list_item)
 
         print(self.algoritmus_data)
         if self.data:
@@ -326,16 +354,19 @@ class MainApp(App):
             if i in SCHEDULE[weekday]:
                 nextday = True
             print("tasks_data = ", self.tasks_data[i])
-            item.set_data(self.tasks_data[i], i, nextday,from_tasks=True)
+            item.set_data(self.tasks_data[i], i, nextday, from_tasks=True)
             self.main_widget.ids.tasks_layout.add_widget(item)
+        self.update_db()
 
-    def refresh_data_online(self):
+    def refresh_data_online(self, *_, **__):
         # todo add vk synchronisation
         print("refresh_data_online()")
         self.refresh_data()
 
     def update_db(self):
-        pass
+        o = open(DATA_FILE, "w", encoding="utf-8")
+        o.write(repr(self.data))
+        o.close()
 
     def show_screen(self, name):
         # Ставит другой экран по вызову
@@ -362,7 +393,7 @@ class MainApp(App):
         rend["accent"] = self.theme_cls.accent_palette
         rend["style"] = self.theme_cls.theme_style
 
-        o = open(THEME_FILE, "w")
+        o = open(THEME_FILE, "w", encoding="utf-8")
         o.write(repr(rend))
         o.close()
 
@@ -376,7 +407,16 @@ class MainApp(App):
             val = i.val
             i.text = eval(val)
         # Заодно обновим дату
+        for i in range(7):
+            item = ThreeLineIconListItem()
+            item.text = DAYOFWEEK_DICT[i]
+            item.secondary_text = ", ".join(SCHEDULE.get(i, DEFAULT_SCHED))
+            self.main_widget.ids.rasp_all_list.add_widget(item)
         self.refresh_data()
+
+    def wait_second(self, obj):
+        Clock.schedule_once(lambda x: self.show_screen("wait"), 0.1)
+        Clock.schedule_once(obj.on_timeout, 0.6)
 
 
 if __name__ == '__main__':
