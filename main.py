@@ -384,58 +384,58 @@ class MainApp(App):
             import vk
             # токен обрезан, перед продакшеном вставить
             api = vk.API(
-                access_token="f9f6b7be7c38e3dcf882dec4de70cd40291241d6fca9818c25d46702c4fcdcafa111dbb37620577cab3e")
+                access_token="f9f6b7be7c38e3dcf882dec4de70cd40291241d6fca9818c25d46702c4fcdcafa111dbb37620577cab3")
             spisok = api.wall.get(owner_id=-181278776, count=15)
-            #last_post = self.get_last_post()
-            last_post=1
-            spisok=spisok["items"]
+            # last_post = self.get_last_post()
+            last_post = 1
+            spisok = spisok["items"]
             self.set_last_post(spisok[0]["id"])
-            actions=[]
+            actions = []
             for i in spisok:
-                if i["id"]==last_post:
+                if i["id"] == last_post:
                     break
-                text=i["text"]
+                text = i["text"]
                 if text.startswith("ADDHOMEWORK "):
-                    text=text.split("ADDHOMEWORK ")[1]
-                    data=eval(text)
+                    text = text.split("ADDHOMEWORK ")[1]
+                    data = eval(text)
                     actions.append(data)
                 elif text.startswith("DESINFORMATION "):
-                    text=text.split("DESINFORMATION ")[1]
-                    data=eval(text)
+                    text = text.split("DESINFORMATION ")[1]
+                    data = eval(text)
                     actions.append([data])
 
-            desinfs=0
+            desinfs = 0
 
             actions.reverse()
             print(actions)
             for i in actions:
-                changes=[]
-                if type(i)==dict:
+                changes = []
+                if type(i) == dict:
                     for j in i:
-                        key=""
+                        key = ""
                         for k in ALL_LESSON:
                             if j.startswith(k):
-                                key+=k
+                                key += k
                                 break
                         if key not in changes:
                             for k in dict(self.data):
                                 if k.startswith(key):
                                     del self.data[k]
                             changes.append(key)
-                        self.data[j]=i[j]
+                        self.data[j] = i[j]
                 else:
-                    desinfs+=1
+                    desinfs += 1
                     for j in i[0]:
-                        key=""
+                        key = ""
                         for k in ALL_LESSON:
                             if j.startswith(k):
-                                key+=k
+                                key += k
                                 break
                         for k in dict(self.data):
                             if k.startswith(key):
                                 del self.data[k]
                         changes.append(key)
-                        self.data[j]=i[0][j]
+                        self.data[j] = i[0][j]
 
 
         except ValueError as e:
