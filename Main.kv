@@ -34,6 +34,9 @@
     NavButton:
         val:"app.raspisanie"
         icon:"school"
+    NavButton:
+        val:"app.netochnost"
+        icon:"alert"
 
     NavigationDrawerSubheader:
         text:app.settings_subheader
@@ -41,6 +44,9 @@
     NavButton:
         val:"app.customization"
         icon:"palette"
+    NavButton:
+        val:"app.oproge"
+        icon:"information"
 
 
 MainLayout:
@@ -170,6 +176,25 @@ MainLayout:
                                     padding:dp(5)
                                     spacing:dp(5)
                                     id:rasp_all_list
+
+
+
+            Screen:
+                name:"oproge"
+                BoxLayout:
+                    MDLabel:
+                        text:app.info_oproge
+
+
+
+
+
+            Screen:
+                name:"netochnost"
+                BoxLayout:
+                    MDLabel:
+                        text:app.info_mistake
+
 
 
 

@@ -19,12 +19,17 @@ SCHEDULE = {0: ["Русский язык", "История", "География
             4: ["История", "Английский язык", "Физическая физкультура", "Литература", "Обществознание"],
             5: ["Химия", "Музыка", "Русский язык", "Литература", "Геометрия"]}
 
+ALL_LESSON = ["Информатика", "Английский язык", "Физическая физкультура", "Алгебра", "Музыка", "Геометрия", "Физика",
+              "История", "ОБЖ",
+              "Обществознание", "Русский язык", "Литература", "Биология", "География", "Химия"]
+
 DAYOFWEEK_DICT = {0: "Понедельник", 1: "Вторник", 2: "Среда", 3: "Четверг", 4: "Пятница", 5: "Суббота",
                   6: "Воскресенье"}
 DEFAULT_SCHED = ["Нет уроков"]
 
 THEME_FILE = "theme.ini"
 DATA_FILE = "data.ini"
+LASTPOST_FILE = "lastpost.ini"
 
 try:
     o = open(THEME_FILE, "r", encoding="utf-8")
@@ -141,16 +146,13 @@ def communise(r):
 class ItemCard(MDCardPost):
     def __init__(self, **_):
         super().__init__(**_)
-        menu_item = [{"viewclass": "MDMenuItem", "text": "Сделано", "callback": lambda: self.callback(None, 0)}]
-        self.right_menu = [menu_item, menu_item]
-        print("setted menu")
         self.swipe = True
         self.path_to_avatar = "assets\pencil.png"
         self.data_for_cancel = {}
 
     def callback(self, inst, value):
         if value:
-            print(value)
+            pass
         else:
             Snackbar(text="Удалено", button_text="Отмените!1", button_callback=self.btn_callback).show()
             self.data_for_cancel = self.data
@@ -216,7 +218,6 @@ class MainApp(App):
     oproge = "О приложении"
     settings = "Настройки"
 
-
     # Метки интерфейса
     algoritmus_promotes = "Алгоритмус предлагает сделать:"
     change_theme = "Настроить внешний вид"
@@ -224,6 +225,14 @@ class MainApp(App):
     render_theme = "Фон: {}\nБазовый цвет: {}\nВторичный цвет: {}"
     promoted = "Рекомендуемое"
     all_rasp = "Всё расписание"
+    info_oproge = """Данное приложение было создано Жуковым Георгием. Если есть вопросы, пишите в ВК
+    ВК: https://vk.com/warycow1
+    Исходный код: https://github.com/DeDxYk594/schhelper_android_application"""
+    info_mistake = """Если Вы нашли ошибку в домашнем задании, напишите в ВК Жукову Георгию
+    https://vk.com/warycow1
+    
+Если приложение работает неправильно, напишите туда же или на github
+    https://github.com/DeDxYk594/schhelper_android_application"""
 
     # Подзаголовки NavigationDrawerа
     main_subheader = "Основное"
@@ -239,7 +248,6 @@ class MainApp(App):
 
         # Theme Manager, куда же без него!
         self.theme_cls = ThemeManager()
-
 
         # Loading theme from file
         try:
@@ -275,14 +283,12 @@ class MainApp(App):
                 del data[i]
 
         self.data = data
-        print(self.data)
         self.refresh_data()
 
     def refresh_data(self):
         self.now = datetime.now()
         tz = pytz.timezone("Etc/GMT+4")
         tz.localize(self.now)
-        print(self.now.weekday())
 
         hierarchy = []
         weekday = self.now.weekday()
@@ -328,7 +334,6 @@ class MainApp(App):
 
         self.main_widget.ids.rasp_list.add_widget(today_list_item)
 
-        print(self.algoritmus_data)
         if self.data:
             self.main_widget.ids.algoritmuscard.set_data(self.algoritmus_data, self.algoritmus_header,
                                                          self.algoritmus_nextday)
@@ -354,14 +359,92 @@ class MainApp(App):
             nextday = False
             if i in SCHEDULE[weekday]:
                 nextday = True
-            print("tasks_data = ", self.tasks_data[i])
             item.set_data(self.tasks_data[i], i, nextday, from_tasks=True)
             self.main_widget.ids.tasks_layout.add_widget(item)
         self.update_db()
 
+    def get_last_post(self):
+        try:
+            o = open(LASTPOST_FILE, "r", encoding="utf-8")
+            id = eval(o.read())
+            o.close()
+            return id
+        except:
+            return -100
+
+    def set_last_post(self, id):
+        o = open(LASTPOST_FILE, "w", encoding="utf-8")
+        o.write(repr(id))
+        o.close()
+
     def refresh_data_online(self, *_, **__):
         # todo add vk synchronisation
         print("refresh_data_online()")
+        try:
+            import vk
+            # токен обрезан, перед продакшеном вставить
+            api = vk.API(
+                access_token="f9f6b7be7c38e3dcf882dec4de70cd40291241d6fca9818c25d46702c4fcdcafa111dbb37620577cab3e")
+            spisok = api.wall.get(owner_id=-181278776, count=15)
+            #last_post = self.get_last_post()
+            last_post=1
+            spisok=spisok["items"]
+            self.set_last_post(spisok[0]["id"])
+            actions=[]
+            for i in spisok:
+                if i["id"]==last_post:
+                    break
+                text=i["text"]
+                if text.startswith("ADDHOMEWORK "):
+                    text=text.split("ADDHOMEWORK ")[1]
+                    data=eval(text)
+                    actions.append(data)
+                elif text.startswith("DESINFORMATION "):
+                    text=text.split("DESINFORMATION ")[1]
+                    data=eval(text)
+                    actions.append([data])
+
+            desinfs=0
+
+            actions.reverse()
+            print(actions)
+            for i in actions:
+                changes=[]
+                if type(i)==dict:
+                    for j in i:
+                        key=""
+                        for k in ALL_LESSON:
+                            if j.startswith(k):
+                                key+=k
+                                break
+                        if key not in changes:
+                            for k in dict(self.data):
+                                if k.startswith(key):
+                                    del self.data[k]
+                            changes.append(key)
+                        self.data[j]=i[j]
+                else:
+                    desinfs+=1
+                    for j in i[0]:
+                        key=""
+                        for k in ALL_LESSON:
+                            if j.startswith(k):
+                                key+=k
+                                break
+                        for k in dict(self.data):
+                            if k.startswith(key):
+                                del self.data[k]
+                        changes.append(key)
+                        self.data[j]=i[0][j]
+
+
+        except ValueError as e:
+            Snackbar(text="Ошибка: {}".format(e)).show()
+            return
+        if not desinfs:
+            Snackbar(text="Информация загружена успешно").show()
+        else:
+            Snackbar(text="Внимание! Была дезинформация!").show()
         self.refresh_data()
 
     def update_db(self):
