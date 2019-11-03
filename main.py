@@ -9,6 +9,9 @@ from kivymd.uix.navigationdrawer import NavigationDrawerIconButton
 from kivymd.uix.navigationdrawer import NavigationLayout
 from kivymd.uix.picker import MDThemePicker
 from kivymd.uix.snackbar import Snackbar
+from kivymd.uix.menu import MDMenuItem,MDDropdownMenu
+
+
 
 SCHEDULE = {0: ["Русский язык", "История", "География", "Биология", "Алгебра", "Физика"],
             1: ["География", "Английский язык", "Информатика", "Геометрия", "Литература", "Физическая физкультура"],
@@ -17,14 +20,14 @@ SCHEDULE = {0: ["Русский язык", "История", "География
             4: ["История", "Английский язык", "Физическая физкультура", "Литература", "Обществознание"],
             5: ["Химия", "Музыка", "Русский язык", "Литература", "Геометрия"]}
 
-THEME_FILE="theme.ini"
+THEME_FILE = "theme.ini"
 
 try:
-    o=open(THEME_FILE,"r")
-    theme=eval(o.read())
+    o = open(THEME_FILE, "r")
+    theme = eval(o.read())
     o.close()
 except:
-    theme=None
+    theme = None
 
 
 # Vspomogatelnaiye function
@@ -127,46 +130,47 @@ def communise(r):
 class ItemCard(MDCardPost):
     def __init__(self, **_):
         super().__init__(**_)
-        self.swipe = True
+        menu_item = [{"viewclass": "MDMenuItem", "text": "Сделано", "callback": lambda: self.callback(None, 0)}]
+        self.right_menu = [menu_item, menu_item]
+        print("setted menu")
+        self.swipe=True
         self.path_to_avatar = "assets\pencil.png"
-        self.data_for_cancel={}
+        self.data_for_cancel = {}
+
+
 
     def callback(self, inst, value):
         if value:
             print(value)
         else:
             Snackbar(text="Удалено", button_text="Отмените!1", button_callback=self.btn_callback).show()
-            self.data_for_cancel=self.data
+            self.data_for_cancel = self.data
             app.remove_from_data(self.header)
 
     def btn_callback(self, *_):
         app.cancel_delete(self.data_for_cancel)
         Snackbar(text="Отменено!").show()
 
-    def set_data(self, data, header, nextday=False,addiction=None):
-
+    def set_data(self, data, header, nextday=False, addiction=None,from_tasks=False):
         data_visual = communise(data)[0]
-        print(data_visual)
         vis = ""
         for i in data_visual:
-            vis+="   "*i[0]
-            vis+=i[1]
+            vis += "   " * i[0]
+            vis += i[1]
             vis += "\n"
         vis = vis[:-1]
-        print("vis={}".format(vis))
 
         if not addiction:
-            addiction={False:"На потом",True:"На завтра"}[bool(nextday)]
+            addiction = {False: "На потом", True: "На завтра"}[bool(nextday)]
 
-        self.data=data
-        self.header=header
-        self.nextday=nextday
-        self.addiction=addiction
+        self.data = data
+        self.from_tasks=from_tasks
+        self.header = header
+        self.nextday = nextday
+        self.addiction = addiction
 
-        self.text_post=vis
-        self.name_data="{}\n{}".format(self.header,self.addiction)
-
-
+        self.text_post = vis
+        self.name_data = "{}\n{}".format(self.header, self.addiction)
 
 
 # Кнопка в NavigationDrawerе, для удобства была переименована
@@ -199,8 +203,8 @@ class MainApp(App):
     # Метки интерфейса
     algoritmus_promotes = "Алгоритмус предлагает сделать:"
     change_theme = "Настроить внешний вид"
-    save="Сохранить"
-    render_theme="Фон: {}\nБазовый цвет: {}\nВторичный цвет: {}"
+    save = "Сохранить"
+    render_theme = "Фон: {}\nБазовый цвет: {}\nВторичный цвет: {}"
 
     # Подзаголовки NavigationDrawerа
     main_subheader = "Основное"
@@ -217,11 +221,11 @@ class MainApp(App):
         # Theme Manager, куда же без него!
         self.theme_cls = ThemeManager()
 
-        #Loading theme from file
+        # Loading theme from file
         try:
-            self.theme_cls.accent_palette=theme["accent"]
-            self.theme_cls.primary_palette=theme["primary"]
-            self.theme_cls.theme_style=theme["style"]
+            self.theme_cls.accent_palette = theme["accent"]
+            self.theme_cls.primary_palette = theme["primary"]
+            self.theme_cls.theme_style = theme["style"]
         except:
             self.theme_cls.theme_style = "Light"
 
@@ -240,7 +244,7 @@ class MainApp(App):
         # Дата временная
         self.data = {'Информатика(обе группы)': 'Не задано; делали проверочную',
                      'Английский язык (с Гошей)': 'WB p21 wordlist columns 2,3; WB p21-22 ex 16,17 ',
-                     'Английский язык (без Гоши)': 'Неизвестно',"Русский язык(письменно)":"Задание 1"}
+                     'Английский язык (без Гоши)': 'Неизвестно', "Русский язык(письменно)": "Задание 1"}
 
         # Инит в суперклассе, иначе кинет ошибку
         super().__init__()
@@ -279,29 +283,56 @@ class MainApp(App):
                     hierarchy.append(j)
 
         self.algoritmus_data = {}
-        self.algoritmus_header=""
+        self.algoritmus_header = ""
         for i in hierarchy:
             for j in self.data:
                 if j.startswith(i):
                     self.algoritmus_data[j] = self.data[j]
-                    self.algoritmus_header=i
+                    self.algoritmus_header = i
             if self.algoritmus_data:
                 break
 
-        self.nextday=False
-        if weekday in (5,6):
-            weekday=-1
-        weekday+=1
+        self.algoritmus_nextday = False
+        if weekday in (5, 6):
+            weekday = -1
+        weekday += 1
         if self.algoritmus_header in SCHEDULE[weekday]:
-            self.nextday=True
-
-
+            self.nextday = True
 
         print(self.algoritmus_data)
         if self.data:
-            self.main_widget.ids.algoritmuscard.set_data(self.algoritmus_data, self.algoritmus_header, self.nextday)
+            self.main_widget.ids.algoritmuscard.set_data(self.algoritmus_data, self.algoritmus_header,
+                                                         self.algoritmus_nextday)
         else:
-            self.main_widget.ids.algoritmuscard.set_data({"Действия":"Попробуй обновить данные. Если ничего не поменялось, отдыхай))"},"Наверное, ты всё сделал",False,"База данных пуста :(")
+            self.main_widget.ids.algoritmuscard.set_data(
+                {"Действия": "Попробуй обновить данные. Если ничего не поменялось, отдыхай))"},
+                "Наверное, ты всё сделал", False, "База данных пуста :(")
+
+        self.tasks_data = {}
+
+        for i in hierarchy:
+            self.tasks_data[i] = {}
+            for j in self.data:
+                if j.startswith(i):
+                    self.tasks_data[i][j] = self.data[j]
+            if self.tasks_data[i] == {}:
+                self.tasks_data[i] = {
+                    "Не найдено записей в базе данных": "Обновите базу данных. Если так и остаётся, значит, всё сделано!"}
+
+        self.main_widget.ids.tasks_layout.clear_widgets()
+        for i in self.tasks_data:
+            item = ItemCard()
+            nextday = False
+            if i in SCHEDULE[weekday]:
+                nextday = True
+            print("tasks_data = ", self.tasks_data[i])
+            item.set_data(self.tasks_data[i], i, nextday,from_tasks=True)
+            self.main_widget.ids.tasks_layout.add_widget(item)
+
+    def refresh_data_online(self):
+        # todo add vk synchronisation
+        print("refresh_data_online()")
+        self.refresh_data()
 
     def update_db(self):
         pass
@@ -319,32 +350,33 @@ class MainApp(App):
     def theme_picker_open(self):
         self.md_theme_picker.open()
 
-
     def _get_theme_string(self):
         return self.render_theme.format(self.theme_cls.theme_style,
-                                                                      self.theme_cls.primary_palette,
-                                                                      self.theme_cls.accent_palette)
+                                        self.theme_cls.primary_palette,
+                                        self.theme_cls.accent_palette)
+
     def update_theme(self):
-        print("here")
         self.main_widget.ids.theme_label.text = self._get_theme_string()
-        rend={}
-        rend["primary"]=self.theme_cls.primary_palette
-        rend["accent"]=self.theme_cls.accent_palette
-        rend["style"]=self.theme_cls.theme_style
-        o=open(THEME_FILE,"w")
+        rend = {}
+        rend["primary"] = self.theme_cls.primary_palette
+        rend["accent"] = self.theme_cls.accent_palette
+        rend["style"] = self.theme_cls.theme_style
+
+        o = open(THEME_FILE, "w")
         o.write(repr(rend))
         o.close()
 
-
-    def cancel_delete(self,data):
+    def cancel_delete(self, data):
         for i in data:
-            self.data[i]=data[i]
+            self.data[i] = data[i]
         self.refresh_data()
 
     def refresh_names_navdrawer(self):
         for i in self.nav_buttons:
             val = i.val
             i.text = eval(val)
+        # Заодно обновим дату
+        self.refresh_data()
 
 
 if __name__ == '__main__':

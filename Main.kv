@@ -7,6 +7,7 @@
 #:import MDScrollViewRefreshLayout kivymd.uix.refreshlayout.MDScrollViewRefreshLayout
 
 <ItemCard>
+    size_hint:None,None
 
 <MDLabel>
     theme_text_color: 'Primary'
@@ -14,6 +15,8 @@
 
 <NavButton>
     on_release:
+        #todo make this
+        #app.wait_second()
         app.show_screen(self.val[4:])
         app.set_title_toolbar(self.val[4:])
 
@@ -101,9 +104,35 @@ MainLayout:
 
                         text:app.save
                         on_release:app.update_theme()
+
+
             Screen:
                 name:"tasks"
+                FloatLayout:
+                    id:tasks_float_layout
+                    MDScrollViewRefreshLayout:
+                        id:tasks_refresh_layout
+                        refresh_callback:app.refresh_data_online()
+                        root_layout:app.main_widget.ids.tasks_float_layout
+                        do_scroll_x:False
+                        ScrollView:
+                            orientation:"vertical"
+                            id:tasks_view
+                            do_scroll_x:False
+                            size_hint:1,1
+                            GridLayout:
+                                id:tasks_layout
+                                cols:1
+                                padding:dp(5)
+                                spacing:dp(5)
+                                size_hint_y:None
+                                size_hint_x:None
+                                orientation:"vertical"
+                                height:self.minimum_height
+
+
+
 
 
             Screen:
-                emptyarg:app.refresh_names_navdrawer(),app.refresh_data()
+                emptyarg:app.refresh_names_navdrawer()
