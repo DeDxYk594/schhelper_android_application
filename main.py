@@ -216,6 +216,7 @@ class MainApp(App):
     oproge = "О приложении"
     settings = "Настройки"
 
+
     # Метки интерфейса
     algoritmus_promotes = "Алгоритмус предлагает сделать:"
     change_theme = "Настроить внешний вид"
