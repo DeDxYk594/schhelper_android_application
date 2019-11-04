@@ -173,6 +173,8 @@ class ItemCard(MDCardPost):
 
         if not addiction:
             addiction = {False: "На потом", True: "На завтра"}[bool(nextday)]
+        else:
+            self.swipe=False
 
         self.data = data
         self.from_tasks = from_tasks
@@ -384,7 +386,7 @@ class MainApp(App):
             import vk
             # токен обрезан, перед продакшеном вставить
             api = vk.API(
-                access_token="f9f6b7be7c38e3dcf882dec4de70cd40291241d6fca9818c25d46702c4fcdcafa111dbb37620577cab3e")
+                access_token="f9f6b7be7c38e3dcf882dec4de70cd40291241d6fca9818c25d46702c4fcdcafa111dbb37620577cab3ee")
             spisok = api.wall.get(owner_id=-181278776, count=15)
             last_post = self.get_last_post()
             spisok = spisok["items"]
@@ -437,7 +439,7 @@ class MainApp(App):
                         self.data[j] = i[0][j]
 
 
-        except ValueError as e:
+        except Exception as e:
             Snackbar(text="Ошибка: {}".format(e)).show()
             return
         if not desinfs:
