@@ -35,6 +35,9 @@
         val:"app.raspisanie"
         icon:"school"
     NavButton:
+        id:alerts_ndicon
+        val:"app.alerts"
+    NavButton:
         val:"app.netochnost"
         icon:"alert"
 
@@ -60,7 +63,7 @@ MainLayout:
         orientation:"vertical"
         MDToolbar:
             id: toolbar
-            title: 'KivyMD Kitchen Sink'
+            title: app.algoritmus
             md_bg_color: app.theme_cls.primary_color
             background_palette: 'Primary'
             background_hue: '500'
@@ -139,6 +142,15 @@ MainLayout:
                             size_hint_x:None
                             orientation:"vertical"
                             height:self.minimum_height
+            Screen:
+                name:"alerts"
+                ScrollView:
+                    orientation:"vertical"
+                    id:alerts_view
+                    do_scroll_x:False
+                    size_hint:1,1
+                    MDList:
+                        id:alerts_list
 
             Screen:
                 name:"raspisanie"
@@ -200,12 +212,4 @@ MainLayout:
 
 
             Screen:
-                name:"wait"
                 emptyarg:app.refresh_names_navdrawer()
-                BoxLayout:
-                    orientation:"vertical"
-                    MDSpinner:
-                        active:True
-
-                        pos_hint: {'center_x': .5}
-                        size_hint:None,None

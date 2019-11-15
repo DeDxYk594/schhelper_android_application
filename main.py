@@ -6,7 +6,7 @@ from kivy.app import App
 from kivy.clock import Clock
 from kivymd.theming import ThemeManager
 from kivymd.uix.card import MDCardPost
-from kivymd.uix.list import ThreeLineIconListItem
+from kivymd.uix.list import ThreeLineIconListItem,OneLineIconListItem,ThreeLineListItem,IconLeftWidget
 from kivymd.uix.navigationdrawer import NavigationDrawerIconButton
 from kivymd.uix.navigationdrawer import NavigationLayout
 from kivymd.uix.picker import MDThemePicker
@@ -29,21 +29,20 @@ DEFAULT_SCHED = ["Нет уроков"]
 
 THEME_FILE = "theme.ini"
 DATA_FILE = "data.ini"
+ALERTS_FILE = "alerts.ini"
 LASTPOST_FILE = "lastpost.ini"
 
-try:
-    o = open(THEME_FILE, "r", encoding="utf-8")
-    theme = eval(o.read())
-    o.close()
-except:
-    theme = None
+theme = {}
+data = {}
+alerts={"readed":[],"unreaded":[]}
 
-try:
-    o = open(DATA_FILE, "r", encoding="utf-8")
-    data = eval(o.read())
-    o.close()
-except:
-    data = {}
+for i in [THEME_FILE, DATA_FILE, ALERTS_FILE]:
+    try:
+        o = open(i, "r", encoding="utf-8")
+        exec("{} = eval(o.read())".format(i.split(".")[0]))
+        o.close()
+    except:
+        pass
 
 
 # Vspomogatelnaiye function
@@ -147,7 +146,7 @@ class ItemCard(MDCardPost):
     def __init__(self, **_):
         super().__init__(**_)
         self.swipe = True
-        self.path_to_avatar = "assets\pencil.png"
+        self.path_to_avatar = "assets/pencil.png"
         self.data_for_cancel = {}
 
     def callback(self, inst, value):
@@ -162,7 +161,7 @@ class ItemCard(MDCardPost):
         app.cancel_delete(self.data_for_cancel)
         Snackbar(text="Отменено!").show()
 
-    def set_data(self, data, header, nextday=False, addiction=None, from_tasks=False):
+    def set_data(self, data, header, nextday="", addiction=None, from_tasks=False):
         data_visual = communise(data)[0]
         vis = ""
         for i in data_visual:
@@ -172,9 +171,7 @@ class ItemCard(MDCardPost):
         vis = vis[:-1]
 
         if not addiction:
-            addiction = {False: "На потом", True: "На завтра"}[bool(nextday)]
-        else:
-            self.swipe=False
+            addiction = nextday
 
         self.data = data
         self.from_tasks = from_tasks
@@ -215,6 +212,7 @@ class MainApp(App):
     customization = "Кастомизация"
     algoritmus = "Алгоритмус"
     tasks = "Список домашки"
+    alerts="События"
     raspisanie = "Умное расписание"
     netochnost = "Что-то не так?"
     oproge = "О приложении"
@@ -244,6 +242,7 @@ class MainApp(App):
         # Объявление переменных, отвечающих за работу КЛАССА
         self.algoritmus_data = {}
         self.algoritmus_header = ""
+        self.snacks=[]
 
         # Маин виджет потом будет задан из тела MainLayout
         self.main_widget = None
@@ -288,14 +287,24 @@ class MainApp(App):
         self.refresh_data()
 
     def refresh_data(self):
+        print("data", self.data)
         self.now = datetime.now()
         tz = pytz.timezone("Etc/GMT+4")
         tz.localize(self.now)
 
+        self.check_expired_alerts()
+
         hierarchy = []
         weekday = self.now.weekday()
+        old_weekday = self.now.weekday()
+        hour = self.now.hour
+        today = False
+        if hour < 14:
+            today = True
+
         for i in range(6):
-            i += 0
+            if not today:
+                i += 1
             i += weekday
             if i == 6:
                 i = 0
@@ -323,12 +332,14 @@ class MainApp(App):
         today_list_item.secondary_text = ", ".join(SCHEDULE.get(weekday, DEFAULT_SCHED))
 
         self.main_widget.ids.rasp_list.add_widget(today_list_item)
-        self.algoritmus_nextday = False
+        self.algoritmus_nextday = "На потом"
         if weekday in (5, 6):
             weekday = -1
         weekday += 1
-        if self.algoritmus_header in SCHEDULE[weekday]:
-            self.algoritmus_nextday = True
+        if self.algoritmus_header in SCHEDULE.get(weekday, []):
+            self.algoritmus_nextday = "На завтра"
+        if self.algoritmus_header in SCHEDULE.get(old_weekday, []) and today:
+            self.algoritmus_nextday = "СДЕЛАТЬ СЕГОДНЯ!"
 
         today_list_item = ThreeLineIconListItem()
         today_list_item.text = "Завтра ({})".format(DAYOFWEEK_DICT[weekday])
@@ -346,6 +357,24 @@ class MainApp(App):
 
         self.tasks_data = {}
 
+        self.main_widget.ids.alerts_list.clear_widgets()
+        if alerts['unreaded']:
+            item = OneLineIconListItem()
+            item.text = "Новые"
+            item.add_widget(IconLeftWidget(icon="newspaper-plus"))
+            self.main_widget.ids.alerts_list.add_widget(item)
+            for i in alerts["unreaded"]:
+                self.main_widget.ids.alerts_list.add_widget(ThreeLineListItem(text=i[0]))
+
+        if alerts['readed']:
+            item=OneLineIconListItem()
+            item.text="Прочитанные"
+            item.add_widget(IconLeftWidget(icon="newspaper"))
+            self.main_widget.ids.alerts_list.add_widget(item)
+            for i in alerts["readed"]:
+                self.main_widget.ids.alerts_list.add_widget(ThreeLineListItem(text=i[0]))
+
+
         for i in hierarchy:
             self.tasks_data[i] = {}
             for j in self.data:
@@ -358,12 +387,15 @@ class MainApp(App):
         self.main_widget.ids.tasks_layout.clear_widgets()
         for i in self.tasks_data:
             item = ItemCard()
-            nextday = False
+            nextday = "На потом"
             if i in SCHEDULE[weekday]:
-                nextday = True
+                nextday = "На завтра"
+            if today and i in SCHEDULE[old_weekday]:
+                nextday = "СДЕЛАТЬ СЕГОДНЯ!!"
             item.set_data(self.tasks_data[i], i, nextday, from_tasks=True)
             self.main_widget.ids.tasks_layout.add_widget(item)
         self.update_db()
+        self.refresh_alerts_navdrawer()
 
     def get_last_post(self):
         try:
@@ -379,19 +411,41 @@ class MainApp(App):
         o.write(repr(id))
         o.close()
 
+    def add_alerts(self,alert):
+        alerts["unreaded"]+=alert
+        self.save_alerts()
+
+    def save_alerts(self):
+        o=open(ALERTS_FILE,"w",encoding="utf-8")
+        o.write(repr(alerts))
+        o.close()
+
+    def read_all_alerts(self):
+        readed=alerts["unreaded"][:]
+        alerts["readed"]+=readed
+        alerts["unreaded"] = []
+        self.save_alerts()
+        self.refresh_alerts_navdrawer()
+
+
     def refresh_data_online(self, *_, **__):
-        # todo add vk synchronisation
+
         print("refresh_data_online()")
+        snacks=[]
+        new_alerts=[]
+        new_actions=[]
+
         try:
             import vk
             # токен обрезан, перед продакшеном вставить
             api = vk.API(
                 access_token="f9f6b7be7c38e3dcf882dec4de70cd40291241d6fca9818c25d46702c4fcdcafa111dbb37620577cab3ee")
-            spisok = api.wall.get(owner_id=-181278776, count=15)
+            spisok = api.wall.get(owner_id=-181278776, count=20)
             last_post = self.get_last_post()
             spisok = spisok["items"]
             self.set_last_post(spisok[0]["id"])
             actions = []
+            alerts=[]
             for i in spisok:
                 if i["id"] == last_post:
                     break
@@ -404,11 +458,21 @@ class MainApp(App):
                     text = text.split("DESINFORMATION ")[1]
                     data = eval(text)
                     actions.append([data])
+                elif text.startswith("ALERT "):
+                    text = text.split("ALERT ")[1]
+                    data = eval(text)
+                    alerts.append(data)
+
 
             desinfs = 0
 
             actions.reverse()
             print(actions)
+
+            new_actions+=actions
+            new_alerts+=alerts
+            self.add_alerts(new_alerts)
+
             for i in actions:
                 changes = []
                 if type(i) == dict:
@@ -418,7 +482,7 @@ class MainApp(App):
                             if j.startswith(k):
                                 key += k
                                 break
-                        if key not in changes:
+                        if key not in changes and key in ALL_LESSON:
                             for k in dict(self.data):
                                 if k.startswith(key):
                                     del self.data[k]
@@ -440,13 +504,18 @@ class MainApp(App):
 
 
         except Exception as e:
-            Snackbar(text="Ошибка: {}".format(e)).show()
-            return
-        if not desinfs:
-            Snackbar(text="Информация загружена успешно").show()
-        else:
-            Snackbar(text="Внимание! Была дезинформация!").show()
-        self.refresh_data()
+            snacks.append({"text":"Ошибка: {}".format(e)})
+        finally:
+            if new_actions:
+                snacks.append({"text":"Загружено {} заданий".format(len(new_actions))})
+
+            if new_alerts:
+                snacks.append({"text": "Загружено {} уведомлений".format(len(new_alerts)),"button_text":"Посмотреть","button_callback":lambda x:self.show_screen("alerts")})
+
+            if not len(new_alerts)+len(new_actions):
+                snacks.append({"text": "Обновление не требовалось, всё есть"})
+            self.refresh_data()
+        self.show_snackbars(snacks=snacks)
 
     def update_db(self):
         o = open(DATA_FILE, "w", encoding="utf-8")
@@ -456,9 +525,43 @@ class MainApp(App):
     def show_screen(self, name):
         # Ставит другой экран по вызову
         self.main_widget.ids.scr_mngr.current = name
+        if name=="alerts":
+            self.read_all_alerts()
+
+    def check_expired_alerts(self):
+        deleted=0
+        new=alerts["readed"][:]
+        for i in alerts["readed"]:
+            date=datetime(*i[1])
+            if self.now>date:
+                new.remove(i)
+                deleted+=1
+        alerts["readed"]=new
+        if deleted:
+            self.snacks.append({"text":"Прошло {} событий".format(deleted)})
+            self.save_alerts()
+
 
     def build(self):
         return
+
+    def show_snackbars(self,*_,snacks=[]):
+
+        if snacks:
+            self.snacks=snacks
+        try:
+            item=self.snacks[0]
+        except:
+            return
+        if item.get("button_text"):
+            Snackbar(text=item["text"],button_text=item["button_text"],button_callback=item["button_callback"]).show()
+        else:
+            Snackbar(text=item["text"]).show()
+
+        del self.snacks[0]
+        Clock.schedule_once(self.show_snackbars,5)
+
+
 
     def set_title_toolbar(self, title):
         self.main_widget.ids.toolbar.title = eval("self." + title)
@@ -499,9 +602,20 @@ class MainApp(App):
             self.main_widget.ids.rasp_all_list.add_widget(item)
         self.refresh_data()
 
+    def refresh_alerts_navdrawer(self):
+        if not len(alerts["unreaded"]):
+            icon="cellphone-information"
+            name=self.alerts
+        else:
+            icon="alert-rhombus-outline"
+            name=self.alerts+" ({})".format(len(alerts["unreaded"]))
+        self.nav_buttons[3].text=name
+        self.nav_buttons[3].icon=icon
+
+
     def wait_second(self, obj):
-        Clock.schedule_once(lambda x: self.show_screen("wait"), 0.1)
-        Clock.schedule_once(obj.on_timeout, 0.6)
+        # Tick 0.4 sec
+        Clock.schedule_once(obj.on_timeout, 0.4)
 
 
 if __name__ == '__main__':
